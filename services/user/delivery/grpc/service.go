@@ -8,8 +8,6 @@ import (
 	"github.com/muhammadisa/go-kit-boilerplate/services/user/delivery"
 	"github.com/muhammadisa/go-kit-boilerplate/services/user/delivery/protobuf/user_grpc"
 	oldcontext "golang.org/x/net/context"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type grpcServer struct {
@@ -18,6 +16,7 @@ type grpcServer struct {
 	logger   log.Logger
 }
 
+// NewGRPCServer create grpc server
 func NewGRPCServer(
 	svcEndpoints delivery.Endpoints,
 	logger log.Logger,
@@ -62,7 +61,7 @@ func decodeRegisterRequest(
 	_ context.Context,
 	request interface{},
 ) (interface{}, error) {
-	req := request.(user_grpc.RegisterRequest)
+	req := request.(*user_grpc.RegisterRequest)
 	return delivery.CreateRegisterRequest{
 		Email:     req.Email,
 		Passwords: req.Passwords,
@@ -74,7 +73,7 @@ func decodeLoginRequest(
 	_ context.Context,
 	request interface{},
 ) (interface{}, error) {
-	req := request.(user_grpc.LoginRequest)
+	req := request.(*user_grpc.LoginRequest)
 	return delivery.CreateLoginRequest{
 		Email:     req.Email,
 		Passwords: req.Passwords,
@@ -97,13 +96,4 @@ func encodeLoginResponse(
 ) (interface{}, error) {
 	res := response.(delivery.CreateLoginResponse)
 	return &user_grpc.LoginResponse{Status: res.Status}, nil
-}
-
-func getError(err error) error {
-	switch err {
-	case nil:
-		return nil
-	default:
-		return status.Error(codes.Unknown, err.Error())
-	}
 }

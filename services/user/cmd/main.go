@@ -4,16 +4,22 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/muhammadisa/go-kit-boilerplate/services/user/delivery/protobuf/user_grpc"
+	"github.com/oklog/oklog/pkg/group"
+
 	"github.com/muhammadisa/go-kit-boilerplate/services/user"
 	"github.com/muhammadisa/go-kit-boilerplate/services/user/delivery"
+	grpcdelivery "github.com/muhammadisa/go-kit-boilerplate/services/user/delivery/grpc"
 	httpdelivery "github.com/muhammadisa/go-kit-boilerplate/services/user/delivery/http"
 	"github.com/muhammadisa/go-kit-boilerplate/services/user/implementation"
 	"github.com/muhammadisa/go-kit-boilerplate/services/user/repository"
+	"google.golang.org/grpc"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
@@ -52,6 +58,43 @@ func restMode(
 		errs <- server.ListenAndServe()
 	}()
 	level.Error(logger).Log("exit", <-errs)
+}
+
+func grpcMode(
+	_ context.Context,
+	logger log.Logger,
+	endpoints delivery.Endpoints,
+) {
+	port := ":50051"
+	var (
+		accountService  = grpcdelivery.NewGRPCServer(endpoints, logger)
+		grpcListener, _ = net.Listen("tcp", port)
+		grpcServer      = grpc.NewServer()
+		g               group.Group
+	)
+
+	g.Add(func() error {
+		logger.Log("transport", "gRPC", "addr", port)
+		user_grpc.RegisterUserServiceServer(grpcServer, accountService)
+		return grpcServer.Serve(grpcListener)
+	}, func(error) {
+		grpcListener.Close()
+	})
+
+	cancelInterrupt := make(chan struct{})
+	g.Add(func() error {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+		select {
+		case sig := <-c:
+			return fmt.Errorf("received signal %s", sig)
+		case <-cancelInterrupt:
+			return nil
+		}
+	}, func(error) {
+		close(cancelInterrupt)
+	})
+	level.Error(logger).Log("exit", g.Run())
 }
 
 func createLogger() log.Logger {
@@ -132,5 +175,6 @@ func main() {
 	endpoints := initEndpoints(service)
 
 	// starting mode
-	restMode(ctx, logger, endpoints)
+	// restMode(ctx, logger, endpoints)
+	grpcMode(ctx, logger, endpoints)
 }
