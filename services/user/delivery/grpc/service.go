@@ -27,10 +27,16 @@ func NewGRPCServer(
 
 	return &grpcServer{
 		register: kitgrpc.NewServer(
-			svcEndpoints.Register, decodeRegisterRequest, encodeRegisterResponse, options...,
+			svcEndpoints.Register,
+			decodeRegisterRequest,
+			encodeRegisterResponse,
+			options...,
 		),
 		login: kitgrpc.NewServer(
-			svcEndpoints.Login, decodeLoginRequest, encodeLoginResponse, options...,
+			svcEndpoints.Login,
+			decodeLoginRequest,
+			encodeLoginResponse,
+			options...,
 		),
 		logger: logger,
 	}
