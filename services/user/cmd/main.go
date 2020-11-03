@@ -2,14 +2,18 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"flag"
 	"fmt"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/muhammadisa/go-kit-boilerplate/middleware"
 	grpcdelivery "github.com/muhammadisa/go-kit-boilerplate/services/user/delivery/grpc"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/muhammadisa/go-kit-boilerplate/protobuf/user_grpc"
@@ -25,7 +29,6 @@ import (
 	"github.com/gocraft/dbr/dialect"
 	"github.com/gocraft/dbr/v2"
 	"github.com/joho/godotenv"
-	"github.com/muhammadisa/godbconn"
 )
 
 func restMode(
@@ -33,29 +36,25 @@ func restMode(
 	logger log.Logger,
 	userServiceHttp http.Handler,
 ) {
-	/*
-		http address flag and getting port from env
-		Prepare HTTP Handler
-	*/
 	port := os.Getenv("HTTP_PORT")
 	httpAddr := flag.String("http", port, "http listen address")
 	flag.Parse()
 
-	errs := make(chan error, 1)
+	errs := make(chan error)
 	go func() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 		errs <- fmt.Errorf("%s", <-c)
 	}()
 	go func() {
-		level.Info(logger).Log("transport", "HTTP", "addr", *httpAddr)
+		_ = level.Info(logger).Log("transport", "HTTP", "addr", *httpAddr)
 		server := &http.Server{
 			Addr:    *httpAddr,
 			Handler: userServiceHttp,
 		}
 		errs <- server.ListenAndServe()
 	}()
-	level.Error(logger).Log("exit", <-errs)
+	_ = level.Error(logger).Log("exit", <-errs)
 }
 
 func grpcMode(
@@ -63,22 +62,22 @@ func grpcMode(
 	logger log.Logger,
 	userServiceGrpc user_grpc.UserServiceServer,
 ) {
-	port := ":50051"
+	port := os.Getenv("GRPC_PORT")
 	grpcListener, _ := net.Listen("tcp", port)
 	grpcServer := grpc.NewServer()
 
-	errs := make(chan error, 1)
+	errs := make(chan error)
 	go func() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 		errs <- fmt.Errorf("%s", <-c)
 	}()
 	go func() {
-		logger.Log("transport", "gRPC", "addr", port)
+		_ = logger.Log("transport", "gRPC", "addr", port)
 		user_grpc.RegisterUserServiceServer(grpcServer, userServiceGrpc)
 		errs <- grpcServer.Serve(grpcListener)
 	}()
-	level.Error(logger).Log("exit", <-errs)
+	_ = level.Error(logger).Log("exit", <-errs)
 }
 
 func grpcGatewayMode(
@@ -89,18 +88,28 @@ func grpcGatewayMode(
 	mux := runtime.NewServeMux()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
 	err := user_grpc.RegisterUserServiceHandlerServer(ctx, mux, userServiceGrpc)
 	if err != nil {
-		level.Error(logger).Log("exit", err)
+		_ = level.Error(logger).Log("exit", err)
 		os.Exit(-1)
 	}
 	listen, err := net.Listen("tcp", ":8080")
 	if err != nil {
-		level.Error(logger).Log("exit", err)
+		_ = level.Error(logger).Log("exit", err)
 		os.Exit(-1)
 	}
-	http.Serve(listen, mux)
+
+	errs := make(chan error)
+	go func() {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+		errs <- fmt.Errorf("%s", <-c)
+	}()
+	go func() {
+		_ = logger.Log("transport", "gRPC and Restful", "addr", ":8080")
+		errs <- http.Serve(listen, mux)
+	}()
+	_ = level.Error(logger).Log("exit", <-errs)
 }
 
 func createLogger() log.Logger {
@@ -113,7 +122,7 @@ func createLogger() log.Logger {
 		"time: ", log.DefaultTimestampUTC,
 		"caller", log.DefaultCaller,
 	)
-	level.Info(logger).Log("msg", "service started")
+	_ = level.Info(logger).Log("msg", "service started")
 	defer level.Info(logger).Log("msg", "service ended")
 	return logger
 }
@@ -122,23 +131,24 @@ func loadEnvironment(logger log.Logger) {
 	// Load environment
 	err := godotenv.Load()
 	if err != nil {
-		level.Error(logger).Log("exit", err)
+		_ = level.Error(logger).Log("exit", err)
 		os.Exit(-1)
 	}
 }
 
 func createDBRSession(logger log.Logger) *dbr.Session {
-	// Load database credential env and use it
-	db, err := godbconn.DBCred{
-		DBDriver:   "mysql",
-		DBHost:     os.Getenv("DB_HOST"),
-		DBPort:     os.Getenv("DB_PORT"),
-		DBUser:     os.Getenv("DB_USER"),
-		DBPassword: os.Getenv("DB_PASSWORD"),
-		DBName:     os.Getenv("DB_NAME"),
-	}.Connect()
+	driverAndStrConn := fmt.Sprintf("mysql~%s", fmt.Sprintf(
+		"%s:%s@(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local",
+		os.Getenv("DB_USER"),
+		os.Getenv("DB_PASSWORD"),
+		os.Getenv("DB_HOST"),
+		os.Getenv("DB_PORT"),
+		os.Getenv("DB_NAME"),
+	))
+	connectionStr := strings.Split(driverAndStrConn, "~")
+	db, err := sql.Open(connectionStr[0], connectionStr[1])
 	if err != nil {
-		level.Error(logger).Log("exit", err)
+		_ = level.Error(logger).Log("exit", err)
 		os.Exit(-1)
 	}
 	conn := &dbr.Connection{
@@ -148,21 +158,23 @@ func createDBRSession(logger log.Logger) *dbr.Session {
 	}
 	conn.SetMaxOpenConns(10)
 	session := conn.NewSession(nil)
-	session.Begin()
+	_, err = session.Begin()
+	if err != nil {
+		_ = level.Error(logger).Log("exit", err)
+		os.Exit(-1)
+	}
 	return session
 }
 
-func initService(session *dbr.Session, logger log.Logger) user.Service {
-	repository := repository.NewUserRepository(session, logger)
-	return implementation.NewService(repository, logger)
+func initService(session *dbr.Session) user.Service {
+	userRepository := repository.NewUserRepository(session)
+	return implementation.NewService(userRepository)
 }
 
-func initEndpoints(service user.Service) delivery.Endpoints {
+func initEndpoints(service user.Service, logger log.Logger) delivery.Endpoints {
 	endpoints := delivery.MakeEndpoints(service)
-	endpoints = delivery.Endpoints{
-		Register: endpoints.Register,
-		Login:    endpoints.Login,
-	}
+	endpoints.Login = middleware.LoggingMiddleware(logger)(endpoints.Login)
+	endpoints.Register = middleware.LoggingMiddleware(logger)(endpoints.Register)
 	return endpoints
 }
 
@@ -176,9 +188,9 @@ func main() {
 	// Init context and parse flags
 	ctx := context.Background()
 	// Prepare service
-	service := initService(session, logger)
+	service := initService(session)
 	// Prepare endpoints
-	endpoints := initEndpoints(service)
+	endpoints := initEndpoints(service, logger)
 
 	// Rest Http
 	//userServiceHttp := httpdelivery.NewHTTPServe(ctx, endpoints, logger)
@@ -188,4 +200,6 @@ func main() {
 	userServiceGrpc := grpcdelivery.NewGRPCServer(endpoints, logger)
 	grpcGatewayMode(ctx, logger, userServiceGrpc)
 	//grpcMode(ctx, logger, userServiceGrpc)
+
+	defer ctx.Done()
 }

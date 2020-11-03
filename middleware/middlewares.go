@@ -1,6 +1,22 @@
 package middleware
 
-import "net/http"
+import (
+	"context"
+	"github.com/go-kit/kit/endpoint"
+	"github.com/go-kit/kit/log"
+	"net/http"
+)
+
+type Middleware func(endpoint.Endpoint) endpoint.Endpoint
+
+// LoggingMiddleware endpoint
+func LoggingMiddleware(logger log.Logger) Middleware {
+	return func(next endpoint.Endpoint) endpoint.Endpoint {
+		return func(ctx context.Context, request interface{}) (interface{}, error) {
+			return next(ctx, request)
+		}
+	}
+}
 
 // ContentTypeMiddleware return content type json middleware
 func ContentTypeMiddleware(next http.Handler) http.Handler {

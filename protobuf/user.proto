@@ -4,21 +4,9 @@ package user_grpc;
 
 option go_package = "user_grpc;user_grpc";
 
-import "google/api/annotations.proto";
-
 service UserService {
-    rpc Register (RegisterRequest) returns (RegisterResponse){
-        option (google.api.http) = {
-            post: "/v1/auth/register"
-            body: "*"
-        };
-    };
-    rpc Login (LoginRequest) returns (LoginResponse) {
-        option (google.api.http) = {
-            post: "/v1/auth/login"
-            body: "*"
-        };
-    };
+    rpc Register (RegisterRequest) returns (RegisterResponse);
+    rpc Login (LoginRequest) returns (LoginResponse);
 }
 
 message RegisterRequest {

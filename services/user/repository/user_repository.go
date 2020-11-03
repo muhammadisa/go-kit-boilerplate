@@ -6,20 +6,17 @@ import (
 
 	"github.com/gocraft/dbr/v2"
 
-	"github.com/go-kit/kit/log"
 	"github.com/muhammadisa/go-kit-boilerplate/services/user"
 )
 
 type repository struct {
 	Session *dbr.Session
-	logger  log.Logger
 }
 
 // NewUserRepository create instances of repo struct
-func NewUserRepository(sess *dbr.Session, logger log.Logger) user.Repository {
+func NewUserRepository(sess *dbr.Session) user.Repository {
 	return &repository{
 		Session: sess,
-		logger:  logger,
 	}
 }
 

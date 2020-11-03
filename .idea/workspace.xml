@@ -20,15 +20,19 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="f5343e44-92c7-41aa-b73f-4114c0bbb1bf" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/utils/loggerexec/loggerexec.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/grpc_gateway.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/go.sum" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/middleware/middlewares.go" beforeDir="false" afterPath="$PROJECT_DIR$/middleware/middlewares.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/protobuf/user.proto" beforeDir="false" afterPath="$PROJECT_DIR$/protobuf/user.proto" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/protobuf/user_grpc/user.pb.go" beforeDir="false" afterPath="$PROJECT_DIR$/protobuf/user_grpc/user.pb.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/protobuf/user_grpc/user.pb.gw.go" beforeDir="false" afterPath="$PROJECT_DIR$/protobuf/user_grpc/user.pb.gw.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/services/user/cmd/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/services/user/cmd/main.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/services/user/delivery/endpoints.go" beforeDir="false" afterPath="$PROJECT_DIR$/services/user/delivery/endpoints.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/services/user/delivery/grpc/service.go" beforeDir="false" afterPath="$PROJECT_DIR$/services/user/delivery/grpc/service.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/services/user/delivery/http/service.go" beforeDir="false" afterPath="$PROJECT_DIR$/services/user/delivery/http/service.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/user/delivery/protobuf/user.proto" beforeDir="false" afterPath="$PROJECT_DIR$/protobuf/user.proto" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/user/delivery/protobuf/user_grpc/user.pb.go" beforeDir="false" afterPath="$PROJECT_DIR$/protobuf/user_grpc/user.pb.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/services/user/implementation/service.go" beforeDir="false" afterPath="$PROJECT_DIR$/services/user/implementation/service.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/services/user/repository/user_repository.go" beforeDir="false" afterPath="$PROJECT_DIR$/services/user/repository/user_repository.go" afterDir="false" />
     </list>

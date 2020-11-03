@@ -21,14 +21,10 @@ func NewHTTPServe(
 	logger log.Logger,
 ) http.Handler {
 	// Initialize mux router error logger and error
-	var (
-		r            = mux.NewRouter()
-		options      []httptransport.ServerOption
-		errorLogger  = httptransport.ServerErrorLogger(logger)
-		errorEncoder = httptransport.ServerErrorEncoder(
-			decodeencode.EncodeErrorResponse,
-		)
-	)
+	r := mux.NewRouter()
+	var options []httptransport.ServerOption
+	errorLogger := httptransport.ServerErrorLogger(logger)
+	errorEncoder := httptransport.ServerErrorEncoder(decodeencode.EncodeErrorResponse)
 	options = append(options, errorLogger, errorEncoder)
 
 	// Attaching middlewares

@@ -1,0 +1,10 @@
+type: google.api.Service
+config_version: 3
+http:
+  rules:
+    - selector: user_grpc.UserService.Login
+      post: /v1/auth/login
+      body: "*"
+    - selector: user_grpc.UserService.Register
+      post: /v1/auth/register
+      body: "*"

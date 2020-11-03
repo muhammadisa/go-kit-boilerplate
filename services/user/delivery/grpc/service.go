@@ -4,15 +4,15 @@ import (
 	"context"
 
 	"github.com/go-kit/kit/log"
-	kitgrpc "github.com/go-kit/kit/transport/grpc"
+	grpctransport "github.com/go-kit/kit/transport/grpc"
 	"github.com/muhammadisa/go-kit-boilerplate/protobuf/user_grpc"
 	"github.com/muhammadisa/go-kit-boilerplate/services/user/delivery"
 	oldcontext "golang.org/x/net/context"
 )
 
 type grpcServer struct {
-	register kitgrpc.Handler
-	login    kitgrpc.Handler
+	register grpctransport.Handler
+	login    grpctransport.Handler
 	logger   log.Logger
 }
 
@@ -21,18 +21,18 @@ func NewGRPCServer(
 	svcEndpoints delivery.Endpoints,
 	logger log.Logger,
 ) user_grpc.UserServiceServer {
-	var options []kitgrpc.ServerOption
-	errorLogger := kitgrpc.ServerErrorLogger(logger)
+	var options []grpctransport.ServerOption
+	errorLogger := grpctransport.ServerErrorLogger(logger)
 	options = append(options, errorLogger)
 
 	return &grpcServer{
-		register: kitgrpc.NewServer(
+		register: grpctransport.NewServer(
 			svcEndpoints.Register,
 			decodeRegisterRequest,
 			encodeRegisterResponse,
 			options...,
 		),
-		login: kitgrpc.NewServer(
+		login: grpctransport.NewServer(
 			svcEndpoints.Login,
 			decodeLoginRequest,
 			encodeLoginResponse,
