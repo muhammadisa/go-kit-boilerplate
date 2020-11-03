@@ -16,7 +16,7 @@ import (
 
 // NewHTTPServe create http server with go standard lib
 func NewHTTPServe(
-	ctx context.Context,
+	_ context.Context,
 	svcEndpoints delivery.Endpoints,
 	logger log.Logger,
 ) http.Handler {

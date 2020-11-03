@@ -10,15 +10,12 @@ import (
 	"github.com/muhammadisa/go-kit-boilerplate/services/user"
 )
 
-// ErrRepo standard error for this repo
-var ErrRepo = errors.New("Unable to handle repository request")
-
 type repository struct {
 	Session *dbr.Session
 	logger  log.Logger
 }
 
-// NewUserRepository create instasnce of repo struct
+// NewUserRepository create instances of repo struct
 func NewUserRepository(sess *dbr.Session, logger log.Logger) user.Repository {
 	return &repository{
 		Session: sess,
@@ -28,7 +25,7 @@ func NewUserRepository(sess *dbr.Session, logger log.Logger) user.Repository {
 
 // Register database query logic
 func (repo *repository) Register(
-	ctx context.Context,
+	_ context.Context,
 	user user.User,
 ) error {
 	var err error
@@ -45,8 +42,8 @@ func (repo *repository) Register(
 
 // Login database query logic
 func (repo *repository) Login(
-	ctx context.Context,
-	email, passwords string,
+	_ context.Context,
+	email, _ string,
 ) (*user.User, error) {
 	var err error
 	var selectedUser *user.User
@@ -56,7 +53,7 @@ func (repo *repository) Login(
 		Where("email = ?", email).
 		Load(&selectedUser)
 	if rowsAffected == 0 {
-		return nil, errors.New("User not found")
+		return nil, errors.New("user not found")
 	}
 	if err != nil {
 		return nil, err

@@ -1,0 +1,5 @@
+package loggerexec
+
+func Exec() {
+
+}

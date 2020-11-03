@@ -4,19 +4,18 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	grpcdelivery "github.com/muhammadisa/go-kit-boilerplate/services/user/delivery/grpc"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/muhammadisa/go-kit-boilerplate/services/user/delivery/protobuf/user_grpc"
-	"github.com/oklog/oklog/pkg/group"
+	"github.com/muhammadisa/go-kit-boilerplate/protobuf/user_grpc"
 
 	"github.com/muhammadisa/go-kit-boilerplate/services/user"
 	"github.com/muhammadisa/go-kit-boilerplate/services/user/delivery"
-	grpcdelivery "github.com/muhammadisa/go-kit-boilerplate/services/user/delivery/grpc"
-	httpdelivery "github.com/muhammadisa/go-kit-boilerplate/services/user/delivery/http"
 	"github.com/muhammadisa/go-kit-boilerplate/services/user/implementation"
 	"github.com/muhammadisa/go-kit-boilerplate/services/user/repository"
 	"google.golang.org/grpc"
@@ -30,20 +29,19 @@ import (
 )
 
 func restMode(
-	ctx context.Context,
+	_ context.Context,
 	logger log.Logger,
-	endpoints delivery.Endpoints,
+	userServiceHttp http.Handler,
 ) {
 	/*
-		http addres flag and geting port from env
-		Perpare HTTP Handler
+		http address flag and getting port from env
+		Prepare HTTP Handler
 	*/
 	port := os.Getenv("HTTP_PORT")
 	httpAddr := flag.String("http", port, "http listen address")
-	handler := httpdelivery.NewHTTPServe(ctx, endpoints, logger)
 	flag.Parse()
 
-	errs := make(chan error)
+	errs := make(chan error, 1)
 	go func() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
@@ -53,7 +51,7 @@ func restMode(
 		level.Info(logger).Log("transport", "HTTP", "addr", *httpAddr)
 		server := &http.Server{
 			Addr:    *httpAddr,
-			Handler: handler,
+			Handler: userServiceHttp,
 		}
 		errs <- server.ListenAndServe()
 	}()
@@ -63,38 +61,46 @@ func restMode(
 func grpcMode(
 	_ context.Context,
 	logger log.Logger,
-	endpoints delivery.Endpoints,
+	userServiceGrpc user_grpc.UserServiceServer,
 ) {
 	port := ":50051"
-	var (
-		accountService  = grpcdelivery.NewGRPCServer(endpoints, logger)
-		grpcListener, _ = net.Listen("tcp", port)
-		grpcServer      = grpc.NewServer()
-		g               group.Group
-	)
+	grpcListener, _ := net.Listen("tcp", port)
+	grpcServer := grpc.NewServer()
 
-	g.Add(func() error {
-		logger.Log("transport", "gRPC", "addr", port)
-		user_grpc.RegisterUserServiceServer(grpcServer, accountService)
-		return grpcServer.Serve(grpcListener)
-	}, func(error) {
-		grpcListener.Close()
-	})
-
-	cancelInterrupt := make(chan struct{})
-	g.Add(func() error {
+	errs := make(chan error, 1)
+	go func() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
-		select {
-		case sig := <-c:
-			return fmt.Errorf("received signal %s", sig)
-		case <-cancelInterrupt:
-			return nil
-		}
-	}, func(error) {
-		close(cancelInterrupt)
-	})
-	level.Error(logger).Log("exit", g.Run())
+		errs <- fmt.Errorf("%s", <-c)
+	}()
+	go func() {
+		logger.Log("transport", "gRPC", "addr", port)
+		user_grpc.RegisterUserServiceServer(grpcServer, userServiceGrpc)
+		errs <- grpcServer.Serve(grpcListener)
+	}()
+	level.Error(logger).Log("exit", <-errs)
+}
+
+func grpcGatewayMode(
+	_ context.Context,
+	logger log.Logger,
+	userServiceGrpc user_grpc.UserServiceServer,
+) {
+	mux := runtime.NewServeMux()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	err := user_grpc.RegisterUserServiceHandlerServer(ctx, mux, userServiceGrpc)
+	if err != nil {
+		level.Error(logger).Log("exit", err)
+		os.Exit(-1)
+	}
+	listen, err := net.Listen("tcp", ":8080")
+	if err != nil {
+		level.Error(logger).Log("exit", err)
+		os.Exit(-1)
+	}
+	http.Serve(listen, mux)
 }
 
 func createLogger() log.Logger {
@@ -171,10 +177,15 @@ func main() {
 	ctx := context.Background()
 	// Prepare service
 	service := initService(session, logger)
-	// Perpare endpoints
+	// Prepare endpoints
 	endpoints := initEndpoints(service)
 
-	// starting mode
-	// restMode(ctx, logger, endpoints)
-	grpcMode(ctx, logger, endpoints)
+	// Rest Http
+	//userServiceHttp := httpdelivery.NewHTTPServe(ctx, endpoints, logger)
+	//restMode(ctx, logger, userServiceHttp)
+
+	// Grpc Http2
+	userServiceGrpc := grpcdelivery.NewGRPCServer(endpoints, logger)
+	grpcGatewayMode(ctx, logger, userServiceGrpc)
+	//grpcMode(ctx, logger, userServiceGrpc)
 }

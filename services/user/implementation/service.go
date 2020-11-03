@@ -41,20 +41,20 @@ func (service userService) Register(
 		return "", err
 	}
 
-	uuid := uuid.NewV4()
-	user := user.User{
-		ID:        uuid,
+	newUUID := uuid.NewV4()
+	newUser := user.User{
+		ID:        newUUID,
 		Email:     email,
 		Passwords: string(hashedPassword),
 		CreatedAt: time.Now(),
 	}
 
-	if err := service.repository.Register(ctx, user); err != nil {
+	if err := service.repository.Register(ctx, newUser); err != nil {
 		level.Error(logger).Log("err", err)
 		return "", err
 	}
 
-	logger.Log("register user", uuid.String())
+	logger.Log("register user", newUUID.String())
 	return "Success", nil
 }
 
@@ -74,7 +74,7 @@ func (service userService) Login(
 	err = auth.VerifyPassword(selectedUser.Passwords, passwords)
 	if err != nil {
 		level.Error(logger).Log("err", err)
-		return "", errors.New("Email or Password is incorrect")
+		return "", errors.New("email or password is incorrect")
 	}
 
 	logger.Log("login user", email)

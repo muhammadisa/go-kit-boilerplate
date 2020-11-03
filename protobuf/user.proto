@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package user_grpc;
+
+option go_package = "user_grpc;user_grpc";
+
+import "google/api/annotations.proto";
+
+service UserService {
+    rpc Register (RegisterRequest) returns (RegisterResponse){
+        option (google.api.http) = {
+            post: "/v1/auth/register"
+            body: "*"
+        };
+    };
+    rpc Login (LoginRequest) returns (LoginResponse) {
+        option (google.api.http) = {
+            post: "/v1/auth/login"
+            body: "*"
+        };
+    };
+}
+
+message RegisterRequest {
+    string email = 1;
+    string passwords = 2;
+}
+
+message LoginRequest {
+    string email = 1;
+    string passwords = 2;
+}
+
+message RegisterResponse {
+    string status = 1;
+}
+
+message LoginResponse {
+    string status = 1;
+}

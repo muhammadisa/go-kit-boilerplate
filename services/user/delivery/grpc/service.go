@@ -5,8 +5,8 @@ import (
 
 	"github.com/go-kit/kit/log"
 	kitgrpc "github.com/go-kit/kit/transport/grpc"
+	"github.com/muhammadisa/go-kit-boilerplate/protobuf/user_grpc"
 	"github.com/muhammadisa/go-kit-boilerplate/services/user/delivery"
-	"github.com/muhammadisa/go-kit-boilerplate/services/user/delivery/protobuf/user_grpc"
 	oldcontext "golang.org/x/net/context"
 )
 
